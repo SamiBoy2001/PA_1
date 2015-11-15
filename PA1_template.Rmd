@@ -1,0 +1,122 @@
+---
+title: "PeerAssignment_1"
+output: html_document
+---
+PART 1.
+1.Load the data (i.e. read.csv())
+   
+```{r}
+
+library(datasets)
+library(plyr)
+library(dplyr)
+library(reshape2)
+library(ggplot2)
+
+ actData <- read.csv("activity.csv", sep = ",", header = TRUE,colClasses=c("numeric", "character", "numeric"))
+ ```
+
+2.Process/transform the data (if necessary) into a format suitable for youranalysis.Make a histogram of the total number of steps taken each day
+```{r}  
+
+ xsteps<- aggregate(steps ~ date, actData, sum)
+ dim(xsteps)
+
+     hist(xsteps$steps, xlab = "histogram of sum of steps at 5 minute interval.", main = "Activity: Total steps per day") 
+  
+``` 
+ 
+ 3.Calculate and report the mean and median of the total number of steps taken per day
+ 
+```{r}
+
+      mean(xsteps$steps, na.rm=TRUE)
+     median(xsteps$steps, na.rm=TRUE)
+```
+     
+Remove NAs for the next part of the assignment - Average Activity Pattern.
+```{r}
+  
+   good <- complete.cases(xsteps)
+   actD <- xsteps[good,]
+   good <- complete.cases(xsteps)
+    actD <- xsteps[good,]
+```  
+Get averges
+
+```{r}
+  
+ actAvg <- aggregate(x=list(steps=actData$steps), by=list(interval=actData$interval), FUN=mean, na.rm=TRUE)
+
+```
+ 
+ Plot the averages
+
+```{r}
+
+  ggplot(data=actAvg,aes(x=interval, y=steps))+
+  geom_line() +
+  xlab("Five minute intervals")+
+  ylab("Average activity: number of steps taken ") 
+
+```
+PART2
+1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs). Impute missing data on the estimates of the total daily number of steps.
+
+```{r}
+fill_steps <- function(steps,interval){
+     missed <- NA
+     if(!is.na(steps))
+     missed <- c(steps)
+     else
+     missed <- (actAvg[actAvg$interval==interval,"steps"])
+     return(missed)
+    }
+   missed_data <- actData
+   missed_date <- mapply(fill_steps,missed_data$steps,missed_data$interval)
+
+ class(missed_data)
+  "data.frame"
+ dim(missed_data)
+```
+original data
+```{r}
+class(actData)
+ dim(actData)
+```
+2. Make a Make a histogram of the total number of steps taken each day and Calculate and      report the mean and median total number of steps taken per day.
+```{r}
+
+tsteps <- tapply(missed_data$steps,missed_data$date,FUN=sum)
+
+   qplot(tsteps,binwidth=1000,xlab ="Total number of steps taken per day")
+```
+ mean ane median of new data
+ ```{r}
+ mean(missed_data$steps, na.rm=TRUE)
+ median(missed_data$steps, na.rm=TRUE)
+ ```
+
+3.show differnce in weekday vs. weekend activity
+
+```[r]
+
+  days_of_week <- function(date){
+  wday <-weekdays(date)
+  if(wday %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"))
+  return("WKD")
+  else if (wday %in% c("Saturday", "Sunday"))
+  return("WKND")
+  }
+  missed_data$date <- as.Date(missed_data$date)
+  missed_data$wday <- sapply(missed_data$date, FUN=days_of_week)
+  
+  missAvg <- aggregate(steps ~ interval + wday, data = missed_data, mean)
+  ggplot(missAvg, aes(interval,steps)) +
+  geom_line() + facet_grid(wday ~.) +
+  xlab("Five minute intervals") +
+  ylab("Number of steps taken")
+  
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
