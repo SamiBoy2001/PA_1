@@ -1,0 +1,136 @@
+---
+output: html_document
+---
+```{r}
+library(datasets)
+library(plyr)
+library(dplyr)
+library(reshape2)
+library(knitr)
+library(ggplot2)
+```
+
+### Title: PeerAssessment-2  
+Synopsis:
+  This report is generated for the 2nd assignment of Reproducible Research Course.
+  It involves exploring the NOAA database. This database tracks characteristics of
+  major storms and weather events in the United States, including when and where they occur, 
+  as well as estimates of any fatalities, injuries, and property damage. 
+  For this report we will analyse the events that cause maximum number of
+  bodily injuries and human fatalities and, have the maximum financial consequences.
+
+
+### Data Processing:
+To start with, we download and read storm data into r. Then create the working subset.
+
+```{r, cache=TRUE} 
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", 
+ dest="stormData",method = "wininet")
+ 
+stD <- read.csv("stormData", sep = "," )
+substD <- subset(stD, FATALITIES > 0 & INJURIES > 0, select=c(STATE,INJURIES,FATALITIES,EVTYPE))
+
+```
+Based on the information in the "stormData", this Report attempts to answer following questions:
+ 
+         1.Across the United States, which types of events (as indicated in the EVTYPE variable) 
+           are most harmful with respect to population health?
+         2.Across the United States, which types of events have the greatest economic 
+           consequences?
+
+To answer the first questions:
+ 
+1. We select both "INJURIES" and "FATALITIES" to identify the EVTYPE that are most damaging  
+   to human health. 
+   
+```{r}
+hlth_dmg <- aggregate(INJURIES + FATALITIES ~ EVTYPE + STATE, data=substD,max)
+```
+2. Assign more relevant names to the result set.
+```{r}
+xnames <- c("EVENT", "STATE", "HEALTH_DMG" )
+names(hlth_dmg) <- xnames
+```
+
+3. Process the weather events that are most damaging to population health across all states.
+  
+```{r} 
+
+max_dmg <- subset(hlth_dmg, HEALTH_DMG >= 1 & HEALTH_DMG <= max(HEALTH_DMG), select = ordered(c(EVENT,STATE,HEALTH_DMG )))
+xmaxD <- head(max_dmg[with(max_dmg, order(desc(HEALTH_DMG), STATE)), ],52)
+```
+4.  We report the results of our analysis in the results section. We also plot the results
+    in the plots sections. 
+ 
+
+
+
+To answer the second question
+
+1. We select both "CROPDMG" and "PROPDMG" to identify the EVTYPE that have the greatest economic consequences.
+
+```{r, cache=TRUE}   
+substE <- subset(stD, CROPDMG > 0 & PROPDMG > 0, select=c(STATE,CROPDMG,PROPDMG,EVTYPE))
+eco_dmg <- aggregate(CROPDMG + PROPDMG ~ EVTYPE + STATE, data=substE,max)
+```
+2. Assign more relevant names to the result set.
+```{r}
+
+enames <- c("EVENT", "STATE", "DAMAGE")
+names(eco_dmg) <- enames
+```
+3. Process the weather events responsible for greatest economic consequences across all states in
+  the United States. 
+  
+```{r}
+
+max_edmg <- subset(eco_dmg, DAMAGE >= 1 & DAMAGE <= max(DAMAGE), select = ordered(c(EVENT,STATE,DAMAGE )))
+xmaxE <- head(max_edmg[with(max_edmg, order(desc(DAMAGE),STATE)), ],52)
+```
+  
+4. We report the results of our analysis in the results section. We also plot the results in the
+  plots sections.
+
+
+### Results:
+our analysis show:
+
+1.   TORNADO is the most damaging weather event that causes bodily injuries and fatalities
+     to population across all states. It also shows that Texas has the highest count of
+     injuries and fatalities from this event.
+
+```{r}
+xmaxD
+```
+2.   HIGH WIND is the most damaging weather event responsible for maximum economic impact
+     across all states. It also shows that NC incurs the highest economic impact from this event.
+
+```{r}
+xmaxE
+```
+
+### Plots
+
+```{r, plot1 }
+ 
+qplot(HEALTH_DMG,EVENT, data=xmaxD,facets=.~ STATE, aes(group = 2, geom_line()), 
+main="Health damage to population accross U.S",
+ylab="Weather Events",
+xlab="Maximum damage by weather related events")
+```
+```{r}
+
+```{r, plot2 }
+ 
+qplot(DAMAGE,EVENT, data=xmaxE,facets=.~ STATE, aes(group = 2, geom_line()), 
+main="Economic consequences across the U.S",
+ylab="Weather Events",
+xlab="Maximum damage by weather related events")
+```
+
+
+
+ 
+  
+
+
